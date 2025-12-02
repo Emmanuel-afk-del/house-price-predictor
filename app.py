@@ -58,23 +58,14 @@ AveBedrms = st.sidebar.number_input("Avg Bedrooms", 1.0, 5.0, 1.2, 0.1)
 Population = st.sidebar.number_input("Population", 100, 10000, 1425, 100)
 AveOccup = st.sidebar.number_input("Avg Occupancy", 1.0, 6.0, 3.0, 0.1)
 
-# Free-range Latitude & Longitude inputs
+# Free-range Latitude & Longitude inputs (no validation)
 Latitude = st.sidebar.number_input("Latitude", value=34.0, step=0.1)
 Longitude = st.sidebar.number_input("Longitude", value=-118.0, step=0.1)
 
 # Predict
 if st.sidebar.button("🔮 Predict Price", type="primary"):
 
-    # BLOCK prediction if invalid lat/lon
-    if not (-90 <= Latitude <= 90):
-        st.error("❌ Latitude must be between -90 and 90.")
-        st.stop()
-
-    if not (-180 <= Longitude <= 180):
-        st.error("❌ Longitude must be between -180 and 180.")
-        st.stop()
-
-    # Build input DataFrame
+    # Build input DataFrame (columns match feature_names)
     input_data = pd.DataFrame([{
         "MedInc": MedInc,
         "HouseAge": HouseAge,
