@@ -11,20 +11,20 @@ import os
 def load_model():
     # Get the directory where app.py is located
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
-    
-    # ✅ FIX: Point to notebooks/models/ where your model actually is
+
+    # Point to notebooks/models/
     MODELS_DIR = os.path.join(APP_DIR, "notebooks", "models")
-    
+
     model_path = os.path.join(MODELS_DIR, "best_model.pkl")
     features_path = os.path.join(MODELS_DIR, "feature_names.pkl")
     r2_path = os.path.join(MODELS_DIR, "test_r2.txt")
-    
+
     # Check if model exists
     if not os.path.exists(model_path):
         st.error(f"❌ Model not found at:\n`{model_path}`")
         st.stop()
-    
-    # Load
+
+    # Load model files
     try:
         model = joblib.load(model_path)
         feature_names = joblib.load(features_path)
@@ -42,25 +42,39 @@ def load_model():
 model, feature_names, test_r2 = load_model()
 
 # ================================
-# 🎨 UI (unchanged)
+# 🎨 UI
 # ================================
 st.set_page_config(page_title="House Price Predictor", page_icon="🏡")
 st.title("🏡 California House Price Predictor")
 st.markdown(f"Random Forest model (R² = **{test_r2}**) trained on California housing data.")
 
-# Inputs
+# Sidebar Inputs
 st.sidebar.header("🏠 Enter House Features")
+
 MedInc = st.sidebar.slider("Median Income (× $10k)", 0.5, 15.0, 3.0, 0.1)
 HouseAge = st.sidebar.slider("House Age (years)", 1, 52, 20)
 AveRooms = st.sidebar.number_input("Avg Rooms", 2.0, 15.0, 5.5, 0.5)
 AveBedrms = st.sidebar.number_input("Avg Bedrooms", 1.0, 5.0, 1.2, 0.1)
 Population = st.sidebar.number_input("Population", 100, 10000, 1425, 100)
 AveOccup = st.sidebar.number_input("Avg Occupancy", 1.0, 6.0, 3.0, 0.1)
-Latitude = st.sidebar.number_input("Latitude", 32.0, 42.0, 34.0, 0.1)
-Longitude = st.sidebar.number_input("Longitude", -124.5, -114.0, -118.0, 0.1)
+
+# Free-range Latitude & Longitude inputs
+Latitude = st.sidebar.number_input("Latitude", value=34.0, step=0.1)
+Longitude = st.sidebar.number_input("Longitude", value=-118.0, step=0.1)
 
 # Predict
 if st.sidebar.button("🔮 Predict Price", type="primary"):
+
+    # BLOCK prediction if invalid lat/lon
+    if not (-90 <= Latitude <= 90):
+        st.error("❌ Latitude must be between -90 and 90.")
+        st.stop()
+
+    if not (-180 <= Longitude <= 180):
+        st.error("❌ Longitude must be between -180 and 180.")
+        st.stop()
+
+    # Build input DataFrame
     input_data = pd.DataFrame([{
         "MedInc": MedInc,
         "HouseAge": HouseAge,
@@ -71,7 +85,8 @@ if st.sidebar.button("🔮 Predict Price", type="primary"):
         "Latitude": Latitude,
         "Longitude": Longitude
     }], columns=feature_names)
-    
+
+    # Predict
     pred = model.predict(input_data)[0]
     st.metric("💰 Predicted House Value", f"${pred * 100_000:,.0f}")
 
