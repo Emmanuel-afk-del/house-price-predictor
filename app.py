@@ -5,26 +5,21 @@ import pandas as pd
 import os
 
 # ================================
-# 🚀 Load Model from notebooks/models/ (fixed path)
+# 🚀 Load Model
 # ================================
 @st.cache_resource
 def load_model():
-    # Get the directory where app.py is located
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
-
-    # Point to notebooks/models/
     MODELS_DIR = os.path.join(APP_DIR, "notebooks", "models")
 
     model_path = os.path.join(MODELS_DIR, "best_model.pkl")
     features_path = os.path.join(MODELS_DIR, "feature_names.pkl")
     r2_path = os.path.join(MODELS_DIR, "test_r2.txt")
 
-    # Check if model exists
     if not os.path.exists(model_path):
-        st.error(f"❌ Model not found at:\n`{model_path}`")
+        st.error(f"❌ Model not found at\n`{model_path}`")
         st.stop()
 
-    # Load model files
     try:
         model = joblib.load(model_path)
         feature_names = joblib.load(features_path)
@@ -33,8 +28,8 @@ def load_model():
             with open(r2_path, "r") as f:
                 r2_score = f.read().strip()
         return model, feature_names, r2_score
+
     except Exception as e:
-        st.exception(e)
         st.error(f"❌ Failed to load model: {e}")
         st.stop()
 
@@ -46,39 +41,43 @@ model, feature_names, test_r2 = load_model()
 # ================================
 st.set_page_config(page_title="House Price Predictor", page_icon="🏡")
 st.title("🏡 California House Price Predictor")
-st.markdown(f"Random Forest model (R² = **{test_r2}**) trained on California housing data.")
+st.markdown(f"Random Forest model (R² = **{test_r2}**)")
 
-# Sidebar Inputs
-st.sidebar.header("🏠 Enter House Features")
+st.sidebar.header("🏠 Enter House Features (Text Inputs)")
 
-MedInc = st.sidebar.slider("Median Income (× $10k)", 0.5, 15.0, 3.0, 0.1)
-HouseAge = st.sidebar.slider("House Age (years)", 1, 52, 20)
-AveRooms = st.sidebar.number_input("Avg Rooms", 2.0, 15.0, 5.5, 0.5)
-AveBedrms = st.sidebar.number_input("Avg Bedrooms", 1.0, 5.0, 1.2, 0.1)
-Population = st.sidebar.number_input("Population", 100, 10000, 1425, 100)
-AveOccup = st.sidebar.number_input("Avg Occupancy", 1.0, 6.0, 3.0, 0.1)
+# Text Inputs Instead of Sliders
+MedInc = st.sidebar.text_input("Median Income (× $10k)", "3.0")
+HouseAge = st.sidebar.text_input("House Age (years)", "20")
+AveRooms = st.sidebar.text_input("Avg Rooms", "5.5")
+AveBedrms = st.sidebar.text_input("Avg Bedrooms", "1.2")
+Population = st.sidebar.text_input("Population", "1425")
+AveOccup = st.sidebar.text_input("Avg Occupancy", "3.0")
+Latitude = st.sidebar.text_input("Latitude", "34.0")
+Longitude = st.sidebar.text_input("Longitude", "-118.0")
 
-# Free-range Latitude & Longitude inputs (no validation)
-Latitude = st.sidebar.number_input("Latitude", value=34.0, step=0.1)
-Longitude = st.sidebar.number_input("Longitude", value=-118.0, step=0.1)
-
-# Predict
+# Predict Button
 if st.sidebar.button("🔮 Predict Price", type="primary"):
 
-    # Build input DataFrame (columns match feature_names)
-    input_data = pd.DataFrame([{
-        "MedInc": MedInc,
-        "HouseAge": HouseAge,
-        "AveRooms": AveRooms,
-        "AveBedrms": AveBedrms,
-        "Population": Population,
-        "AveOccup": AveOccup,
-        "Latitude": Latitude,
-        "Longitude": Longitude
-    }], columns=feature_names)
+    try:
+        # Convert all input values to float
+        input_values = {
+            "MedInc": float(MedInc),
+            "HouseAge": float(HouseAge),
+            "AveRooms": float(AveRooms),
+            "AveBedrms": float(AveBedrms),
+            "Population": float(Population),
+            "AveOccup": float(AveOccup),
+            "Latitude": float(Latitude),
+            "Longitude": float(Longitude)
+        }
 
-    # Predict
-    pred = model.predict(input_data)[0]
-    st.metric("💰 Predicted House Value", f"${pred * 100_000:,.0f}")
+        input_data = pd.DataFrame([input_values], columns=feature_names)
+
+        pred = model.predict(input_data)[0]
+
+        st.metric("💰 Predicted House Value", f"${pred * 100_000:,.0f}")
+
+    except ValueError:
+        st.error("❌ Please enter VALID numerical values.")
 
 st.caption("✅ Model loaded from `notebooks/models/` | Built with Streamlit")
